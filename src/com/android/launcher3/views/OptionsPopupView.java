@@ -255,7 +255,10 @@ public class OptionsPopupView extends ArrowPopup<Launcher>
         } else {
             intent.putExtra(EXTRA_WALLPAPER_FLAVOR, "focus_wallpaper");
         }
-        if (Utilities.existsStyleWallpapersAlt(v.getContext())) {
+        if (Utilities.existsStyleWallpapersAOSP(v.getContext())) {
+            String pickerPackage = launcher.getString(R.string.wallpaper_picker_package_aosp);
+            intent.setPackage(pickerPackage);
+        } else if (Utilities.existsStyleWallpapersAlt(v.getContext())) {
             String pickerPackage = launcher.getString(R.string.wallpaper_picker_package_alt);
             intent.setPackage(pickerPackage);
         } else if (Utilities.existsStyleWallpapers(v.getContext())) {

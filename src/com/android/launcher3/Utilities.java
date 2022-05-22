@@ -209,6 +209,12 @@ public final class Utilities {
         return ri != null;
     }
 
+    public static boolean existsStyleWallpapersAOSP(Context context) {
+        ResolveInfo ri = context.getPackageManager().resolveActivity(
+                PackageManagerHelper.getStyleWallpapersAOSPIntent(context), 0);
+        return ri != null;
+    }
+
     /**
      * Given a coordinate relative to the descendant, find the coordinate in a parent view's
      * coordinates.
