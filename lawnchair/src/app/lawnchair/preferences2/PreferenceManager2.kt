@@ -26,6 +26,7 @@ import app.lawnchair.icons.CustomAdaptiveIconDrawable
 import app.lawnchair.icons.shape.IconShape
 import app.lawnchair.icons.shape.IconShapeManager
 import app.lawnchair.qsb.providers.QsbSearchProvider
+import app.lawnchair.smartspace.model.SmartspaceCalendar
 import app.lawnchair.theme.color.ColorOption
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherAppState
@@ -36,6 +37,8 @@ import com.android.launcher3.util.MainThreadInitializedObject
 import com.patrykmichalik.preferencemanager.PreferenceManager
 import com.patrykmichalik.preferencemanager.firstBlocking
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import app.lawnchair.preferences.PreferenceManager as LawnchairPreferenceManager
@@ -150,6 +153,11 @@ class PreferenceManager2(private val context: Context) : PreferenceManager {
                 LawnchairPreferenceManager.getInstance(context).fontWorkspace.set(newValue = fontCache.uiText)
             }
         },
+    )
+
+    val enableSmartspaceCalendarSelection = preference(
+        key = booleanPreferencesKey(name = "enable_smartspace_calendar_selection"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_enable_smartspace_calendar_selection),
     )
 
     val dt2s = preference(
@@ -274,9 +282,18 @@ class PreferenceManager2(private val context: Context) : PreferenceManager {
         defaultValue = true
     )
 
+    val smartspaceCalendar = preference(
+        key = stringPreferencesKey(name = "smartspace_calendar"),
+        defaultValue = SmartspaceCalendar.fromString(context.getString(R.string.config_default_smart_space_calendar)),
+        parse = { SmartspaceCalendar.fromString(it) },
+        save = { it.toString() },
+    )
+
     init {
         initializeIconShape(iconShape.firstBlocking())
         iconShape.get()
+            .drop(1)
+            .distinctUntilChanged()
             .onEach { shape ->
                 initializeIconShape(shape)
                 L3IconShape.init(context)
