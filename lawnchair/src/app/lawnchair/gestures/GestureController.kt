@@ -17,32 +17,67 @@
 package app.lawnchair.gestures
 
 import androidx.lifecycle.lifecycleScope
+import app.lawnchair.LawnchairApp
 import app.lawnchair.LawnchairLauncher
-import app.lawnchair.gestures.handlers.SleepGestureHandler
+import app.lawnchair.gestures.config.GestureHandlerConfig
 import app.lawnchair.preferences2.PreferenceManager2
-import com.patrykmichalik.preferencemanager.onEach
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.android.quickstep.SysUINavigationMode
+import com.android.quickstep.util.VibratorWrapper
+import com.patrykmichalik.preferencemanager.Preference
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class GestureController(private val launcher: LawnchairLauncher) {
-    private val preferenceManager = PreferenceManager2.getInstance(launcher)
-    private val doubleTapHandler = SleepGestureHandler(launcher)
-    private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private var dt2s = false
+    private val prefs = PreferenceManager2.getInstance(launcher)
+    private val scope = MainScope()
 
-    init {
-        preferenceManager.dt2s.onEach(launchIn = coroutineScope) {
-            dt2s = it
-        }
-    }
+    private val doubleTapHandler = handler(prefs.doubleTapGestureHandler)
+    private val swipeUpHandler = handler(prefs.swipeUpGestureHandler)
+    private val swipeDownHandler = handler(prefs.swipeDownGestureHandler)
+    private val homePressHandler = handler(prefs.homePressGestureHandler)
+    private val backPressHandler = handler(prefs.backPressGestureHandler)
 
     fun onDoubleTap() {
-        // TODO: proper gesture selection system
-        if (dt2s) {
-            launcher.lifecycleScope.launch {
-                doubleTapHandler.onTrigger(launcher)
+        triggerHandler(doubleTapHandler)
+    }
+
+    fun onSwipeUp() {
+        triggerHandler(swipeUpHandler)
+    }
+
+    fun onSwipeDown() {
+        triggerHandler(swipeDownHandler)
+    }
+
+    fun onHomePressed() {
+        val usingGestures = SysUINavigationMode.getMode(launcher) == SysUINavigationMode.Mode.NO_BUTTON
+        triggerHandler(homePressHandler, LawnchairApp.isRecentsEnabled && usingGestures)
+    }
+
+    fun onBackPressed() {
+        triggerHandler(backPressHandler, false)
+    }
+
+    private fun triggerHandler(handlerFlow: Flow<GestureHandler>, withHaptic: Boolean = true) {
+        launcher.lifecycleScope.launch {
+            val handler = handlerFlow.first()
+            if (handler is NoOpGestureHandler) {
+                return@launch
+            }
+            handler.onTrigger(launcher)
+            if (withHaptic) {
+                VibratorWrapper.INSTANCE.get(launcher).vibrate(VibratorWrapper.OVERVIEW_HAPTIC)
             }
         }
     }
+
+    private fun handler(pref: Preference<GestureHandlerConfig, String>) = pref.get()
+        .distinctUntilChanged()
+        .map { it.createHandler(launcher) }
+        .shareIn(
+            scope,
+            SharingStarted.Lazily,
+            replay = 1
+        )
 }

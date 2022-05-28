@@ -53,6 +53,8 @@ object Routes {
     const val SMARTSPACE_WIDGET = "smartspaceWidget"
     const val CREATE_BACKUP = "createBackup"
     const val RESTORE_BACKUP = "restoreBackup"
+    const val PICK_APP_FOR_GESTURE = "pickAppForGesture"
+    const val GESTURES = "gestures"
 }
 
 val LocalNavController = staticCompositionLocalOf<NavController> {
@@ -103,6 +105,8 @@ fun Preferences(interactor: PreferenceInteractor = viewModel<PreferenceViewModel
                         smartspaceWidgetGraph(route = subRoute(Routes.SMARTSPACE_WIDGET))
                         createBackupGraph(route = subRoute(Routes.CREATE_BACKUP))
                         restoreBackupGraph(route = subRoute(Routes.RESTORE_BACKUP))
+                        pickAppForGestureGraph(route = subRoute(Routes.PICK_APP_FOR_GESTURE))
+                        gesturesGraph(route = subRoute(Routes.GESTURES))
                     }
                 }
             }

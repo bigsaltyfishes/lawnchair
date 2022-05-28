@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import app.lawnchair.font.FontCache
+import app.lawnchair.gestures.config.GestureHandlerConfig
 import app.lawnchair.icons.CustomAdaptiveIconDrawable
 import app.lawnchair.icons.shape.IconShape
 import app.lawnchair.icons.shape.IconShapeManager
@@ -41,6 +42,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import app.lawnchair.preferences.PreferenceManager as LawnchairPreferenceManager
 import com.android.launcher3.graphics.IconShape as L3IconShape
 
@@ -160,11 +164,6 @@ class PreferenceManager2(private val context: Context) : PreferenceManager {
         defaultValue = context.resources.getBoolean(R.bool.config_default_enable_smartspace_calendar_selection),
     )
 
-    val dt2s = preference(
-        key = booleanPreferencesKey(name = "dt2s"),
-        defaultValue = context.resources.getBoolean(R.bool.config_default_dts2),
-    )
-
     val autoShowKeyboardInDrawer = preference(
         key = booleanPreferencesKey(name = "auto_show_keyboard_in_drawer"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_auto_show_keyboard_in_drawer),
@@ -282,11 +281,67 @@ class PreferenceManager2(private val context: Context) : PreferenceManager {
         defaultValue = true
     )
 
+    val smartspaceShowDate = preference(
+        key = booleanPreferencesKey("smartspace_show_date"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_smartspace_show_date),
+    )
+
+    val smartspaceShowTime = preference(
+        key = booleanPreferencesKey("smartspace_show_time"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_smartspace_show_time),
+    )
+
+    val smartspace24HourFormat = preference(
+        key = booleanPreferencesKey("smartspace_24_hour_format"),
+        defaultValue = context.resources.getBoolean(R.bool.config_default_smartspace_24_hour_format),
+    )
+
     val smartspaceCalendar = preference(
         key = stringPreferencesKey(name = "smartspace_calendar"),
         defaultValue = SmartspaceCalendar.fromString(context.getString(R.string.config_default_smart_space_calendar)),
         parse = { SmartspaceCalendar.fromString(it) },
         save = { it.toString() },
+    )
+
+    val wallpaperDepthEffect = preference(
+        key = booleanPreferencesKey(name = "enable_wallpaper_depth_effect"),
+        defaultValue = true,
+        onSet = { reloadHelper.recreate() }
+    )
+
+    val doubleTapGestureHandler = serializablePreference<GestureHandlerConfig>(
+        key = stringPreferencesKey("double_tap_gesture_handler"),
+        defaultValue = GestureHandlerConfig.Sleep
+    )
+
+    val swipeUpGestureHandler = serializablePreference<GestureHandlerConfig>(
+        key = stringPreferencesKey("swipe_up_gesture_handler"),
+        defaultValue = GestureHandlerConfig.OpenAppDrawer
+    )
+
+    val swipeDownGestureHandler = serializablePreference<GestureHandlerConfig>(
+        key = stringPreferencesKey("swipe_down_gesture_handler"),
+        defaultValue = GestureHandlerConfig.OpenNotifications
+    )
+
+    val homePressGestureHandler = serializablePreference<GestureHandlerConfig>(
+        key = stringPreferencesKey("home_press_gesture_handler"),
+        defaultValue = GestureHandlerConfig.NoOp
+    )
+
+    val backPressGestureHandler = serializablePreference<GestureHandlerConfig>(
+        key = stringPreferencesKey("back_press_gesture_handler"),
+        defaultValue = GestureHandlerConfig.NoOp
+    )
+
+    private inline fun <reified T> serializablePreference(
+        key: Preferences.Key<String>,
+        defaultValue: T
+    ) = preference(
+        key = key,
+        defaultValue = defaultValue,
+        parse = { Json.decodeFromString(it) },
+        save = { Json.encodeToString(it) }
     )
 
     init {

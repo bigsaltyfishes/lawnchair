@@ -1,6 +1,5 @@
 package app.lawnchair.smartspace
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -9,77 +8,108 @@ import android.icu.text.DisplayContext
 import android.os.SystemClock
 import android.util.AttributeSet
 import app.lawnchair.preferences2.PreferenceManager2
-import app.lawnchair.preferences2.subscribeBlocking
 import app.lawnchair.smartspace.model.SmartspaceCalendar
-import app.lawnchair.util.viewAttachedScope
+import app.lawnchair.util.broadcastReceiverFlow
+import app.lawnchair.util.repeatOnAttached
+import app.lawnchair.util.subscribeBlocking
 import com.android.launcher3.R
 import com.patrykmichalik.preferencemanager.firstBlocking
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import saman.zamani.persiandate.PersianDate
 import saman.zamani.persiandate.PersianDateFormat
 import java.util.*
+
+typealias FormatterFunction = (Long) -> String
 
 class IcuDateTextView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : DoubleShadowTextView(context, attrs) {
 
-    private lateinit var preferenceManager2: PreferenceManager2
+    private val prefs = PreferenceManager2.getInstance(context)
     private var calendar: SmartspaceCalendar? = null
-    private var formatterGregorian: DateFormat? = null
-    private var formatterPersian: PersianDateFormat? = null
+    private lateinit var dateTimeOptions: DateTimeOptions
+    private var formatterFunction: FormatterFunction? = null
     private val ticker = this::onTimeTick
-    private val intentReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            onTimeChanged(intent.action != Intent.ACTION_TIME_TICK)
+
+    init {
+        repeatOnAttached {
+            val calendarSelectionEnabled = prefs.enableSmartspaceCalendarSelection.firstBlocking()
+            val calendarFlow =
+                if (calendarSelectionEnabled) prefs.smartspaceCalendar.get()
+                else flowOf(prefs.smartspaceCalendar.defaultValue)
+            val optionsFlow = DateTimeOptions.fromPrefs(prefs)
+            combine(calendarFlow, optionsFlow) { calendar, options -> calendar to options }
+                .subscribeBlocking(this) {
+                    calendar = it.first
+                    dateTimeOptions = it.second
+                    onTimeChanged(true)
+                }
+
+            val intentFilter = IntentFilter()
+            intentFilter.addAction(Intent.ACTION_TIME_CHANGED)
+            intentFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            broadcastReceiverFlow(context, intentFilter)
+                .onEach { onTimeChanged(it.action != Intent.ACTION_TIME_TICK) }
+                .launchIn(this)
         }
-    }
-
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(Intent.ACTION_TIME_CHANGED)
-        intentFilter.addAction(Intent.ACTION_TIMEZONE_CHANGED)
-        context.registerReceiver(intentReceiver, intentFilter)
-        onTimeChanged(true)
-    }
-
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        context.unregisterReceiver(intentReceiver)
     }
 
     private fun onTimeChanged(updateFormatter: Boolean) {
         if (isShown) {
-            val timeText = when (calendar) {
-                SmartspaceCalendar.Persian -> getTimeTextPersian(updateFormatter = updateFormatter)
-                else -> getTimeTextGregorian(updateFormatter = updateFormatter)
-            }
+            val timeText = getTimeText(updateFormatter)
             if (text != timeText) {
                 textAlignment =
                     if (calendar == SmartspaceCalendar.Persian) TEXT_ALIGNMENT_TEXT_END else TEXT_ALIGNMENT_TEXT_START
                 text = timeText
                 contentDescription = timeText
             }
+        } else if (updateFormatter) {
+            formatterFunction = null
         }
     }
 
-    private fun getTimeTextPersian(updateFormatter: Boolean): String {
-        val formatter = formatterPersian.takeIf { updateFormatter.not() } ?: PersianDateFormat(
-            context.getString(R.string.smartspace_icu_date_pattern_persian),
-            PersianDateFormat.PersianDateNumberCharacter.FARSI,
-        ).also { formatterPersian = it }
-        return formatter.format(PersianDate(System.currentTimeMillis()))
+    private fun getTimeText(updateFormatter: Boolean): String {
+        val formatter = getFormatterFunction(updateFormatter)
+        return formatter(System.currentTimeMillis())
     }
 
-    private fun getTimeTextGregorian(updateFormatter: Boolean): String {
-        val formatter = formatterGregorian.takeIf { updateFormatter.not() }
-            ?: DateFormat.getInstanceForSkeleton(
-                context.getString(R.string.smartspace_icu_date_pattern_gregorian),
-                Locale.getDefault()
-            ).also {
-                it.setContext(DisplayContext.CAPITALIZATION_FOR_BEGINNING_OF_SENTENCE)
-                formatterGregorian = it
-            }
-        return formatter.format(System.currentTimeMillis())
+    private fun getFormatterFunction(updateFormatter: Boolean): FormatterFunction {
+        if (formatterFunction != null && !updateFormatter) {
+            return formatterFunction!!
+        }
+        val formatter = when (calendar) {
+            SmartspaceCalendar.Persian -> createPersianFormatter()
+            else -> createGregorianFormatter()
+        }
+        formatterFunction = formatter
+        return formatter
+    }
+
+    private fun createPersianFormatter(): FormatterFunction {
+        val formatter = PersianDateFormat(
+            context.getString(R.string.smartspace_icu_date_pattern_persian),
+            PersianDateFormat.PersianDateNumberCharacter.FARSI,
+        )
+        return { formatter.format(PersianDate(it)) }
+    }
+
+    private fun createGregorianFormatter(): FormatterFunction {
+        var format: String
+        if (dateTimeOptions.showTime) {
+            format = context.getString(
+                if (dateTimeOptions.time24HourFormat) R.string.smartspace_icu_date_pattern_gregorian_time
+                else R.string.smartspace_icu_date_pattern_gregorian_time_12h
+            )
+            if (dateTimeOptions.showDate) format += context.getString(R.string.smartspace_icu_date_pattern_gregorian_date)
+        } else {
+            format = context.getString(R.string.smartspace_icu_date_pattern_gregorian_wday_month_day_no_year)
+        }
+        val formatter = DateFormat.getInstanceForSkeleton(format, Locale.getDefault())
+        formatter.setContext(DisplayContext.CAPITALIZATION_FOR_STANDALONE)
+        return { formatter.format(it) }
     }
 
     private fun onTimeTick() {
@@ -88,23 +118,28 @@ class IcuDateTextView @JvmOverloads constructor(
         handler?.postAtTime(ticker, uptimeMillis + (1000 - uptimeMillis % 1000))
     }
 
-    override fun onFinishInflate() {
-        super.onFinishInflate()
-        preferenceManager2 = PreferenceManager2.getInstance(context)
-        val calendarSelectionEnabled =
-            preferenceManager2.enableSmartspaceCalendarSelection.firstBlocking()
-        if (calendarSelectionEnabled) {
-            preferenceManager2.smartspaceCalendar.subscribeBlocking(scope = viewAttachedScope) {
-                calendar = it
-            }
-        } else {
-            calendar = preferenceManager2.smartspaceCalendar.defaultValue
-        }
-    }
-
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
         handler?.removeCallbacks(ticker)
-        ticker()
+        if (isVisible) {
+            ticker()
+        }
+    }
+}
+
+data class DateTimeOptions(
+    val showDate: Boolean,
+    val showTime: Boolean,
+    val time24HourFormat: Boolean,
+) {
+    companion object {
+        fun fromPrefs(prefs: PreferenceManager2) =
+            combine(
+                prefs.smartspaceShowDate.get(),
+                prefs.smartspaceShowTime.get(),
+                prefs.smartspace24HourFormat.get()
+            ) { showDate, showTime, time24HourFormat ->
+                DateTimeOptions(showDate, showTime, time24HourFormat)
+            }
     }
 }
