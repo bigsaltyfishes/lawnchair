@@ -43,6 +43,9 @@
     <string name="max_folder_columns">Max. Folder Columns</string>
     <string name="max_folder_rows">Max. Folder Rows</string>
     <string name="home_screen_grid">Home Screen Grid</string>
+    <string name="home_screen_lock">Lock Home Screen</string>
+    <string name="home_screen_unlock">Unlock Home Screen</string>
+    <string name="home_screen_lock_toggle_from_home_popup">Show Lock Button in Pop-Up</string>
     <string name="columns">Columns</string>
     <string name="grid">Grid</string>
     <string name="rows">Rows</string>
@@ -116,6 +119,7 @@
     <string name="wallpaper_scrolling_label">Scroll Wallpaper</string>
     <string name="show_sys_ui_scrim">Top Shadow</string>
     <string name="show_status_bar">Show Status Bar</string>
+    <string name="layout">Layout</string>
     <string name="what_to_show">What to Show</string>
     <string name="missing_notification_access_label">Notification Access Needed</string>
     <string name="missing_notification_access_description">Notification access needed.</string>
@@ -223,6 +227,9 @@
     <string name="search_provider_google" translatable="false">Google</string>
     <string name="search_provider_google_go" translatable="false">Google Go</string>
     <string name="search_provider_duckduckgo" translatable="false">DuckDuckGo</string>
+    <string name="search_provider_wikipedia" translatable="false">Wikipedia</string>
+    <string name="search_provider_presearch" translatable="false">Presearch</string>
+    <string name="search_provider_bing" translatable="false">Bing</string>
     <string name="always_open_website_label">Always Open Website</string>
     <string name="always_open_website_description">Open search provider’s website even if their app is installed.</string>
     <string name="search_provider">Search Provider</string>
@@ -240,7 +247,10 @@
     <string name="smartspace_icu_date_pattern_gregorian_time" translatable="false">HH:mm</string>
     <string name="smartspace_icu_date_pattern_gregorian_time_12h" translatable="false">hh:mm aa</string>
     <string name="smartspace_icu_date_pattern_gregorian_date" translatable="false"> dd MMMM</string>
-    <string name="smartspace_icu_date_pattern_persian" translatable="false">l، j F</string>
+    <string name="smartspace_icu_date_pattern_persian_wday_month_day_no_year" translatable="false">l، j F</string>
+    <string name="smartspace_icu_date_pattern_persian_time" translatable="false">H:i</string>
+    <string name="smartspace_icu_date_pattern_persian_time_12h" translatable="false">H:i a</string>
+    <string name="smartspace_icu_date_pattern_persian_date" translatable="false">"j F، "</string>
     <string name="smartspace_battery_charging">Charging</string>
     <string name="smartspace_battery_full">Charged</string>
     <string name="smartspace_battery_low">Battery Low</string>
@@ -305,4 +315,5 @@
     <string name="gesture_swipe_down">Swipe Down</string>
     <string name="gesture_home_tap">Home Button Tap</string>
     <string name="gesture_back_tap">Back Button Tap</string>
+    <string name="x_and_y">%s &amp; %s</string>
 </resources>
