@@ -1,4 +1,4 @@
-package app.lawnchair.ui.preferences.components.colorpreference
+package app.lawnchair.ui.preferences.components.colorpreference.pickers
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
@@ -14,7 +14,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import app.lawnchair.ui.preferences.components.PreferenceGroup
+import app.lawnchair.ui.preferences.components.colorpreference.ColorPreferenceEntry
 
 object SwatchGridDefaults {
     val GutterSize = 12.dp
@@ -24,41 +27,47 @@ object SwatchGridDefaults {
 
 @Composable
 fun <T> SwatchGrid(
+    modifier: Modifier = Modifier,
+    contentModifier: Modifier = Modifier,
     entries: List<ColorPreferenceEntry<T>>,
     onSwatchClick: (T) -> Unit,
-    modifier: Modifier = Modifier,
     isSwatchSelected: (T) -> Boolean
 ) {
     val columnCount = SwatchGridDefaults.ColumnCount
     val rowCount = (entries.size - 1) / columnCount + 1
     val gutter = SwatchGridDefaults.GutterSize
 
-    Column(modifier = modifier) {
-        for (rowNo in 1..rowCount) {
-            val firstIndex = (rowNo - 1) * columnCount
-            val lastIndex = firstIndex + columnCount - 1
-            val indices = firstIndex..lastIndex
+    PreferenceGroup(
+        modifier = modifier,
+        showDividers = false,
+    ) {
+        Column(modifier = contentModifier) {
+            for (rowNo in 1..rowCount) {
+                val firstIndex = (rowNo - 1) * columnCount
+                val lastIndex = firstIndex + columnCount - 1
+                val indices = firstIndex..lastIndex
 
-            Row {
-                entries.slice(indices).forEachIndexed { index, colorOption ->
-                    Box(
-                        modifier = Modifier.weight(1f),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ColorSwatch(
-                            entry = colorOption,
-                            onClick = { onSwatchClick(colorOption.value) },
-                            modifier = Modifier.widthIn(0.dp, SwatchGridDefaults.SwatchMaxWidth),
-                            selected = isSwatchSelected(colorOption.value)
-                        )
-                    }
-                    if (index != columnCount - 1) {
-                        Spacer(modifier = Modifier.width(gutter))
+                Row {
+                    entries.slice(indices).forEachIndexed { index, colorOption ->
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ColorSwatch(
+                                entry = colorOption,
+                                onClick = { onSwatchClick(colorOption.value) },
+                                modifier = Modifier.widthIn(0.dp, SwatchGridDefaults.SwatchMaxWidth),
+                                selected = isSwatchSelected(colorOption.value),
+                            )
+                        }
+                        if (index != columnCount - 1) {
+                            Spacer(modifier = Modifier.width(gutter))
+                        }
                     }
                 }
-            }
-            if (rowNo != rowCount) {
-                Spacer(modifier = Modifier.height(gutter))
+                if (rowNo != rowCount) {
+                    Spacer(modifier = Modifier.height(gutter))
+                }
             }
         }
     }
@@ -72,9 +81,9 @@ fun <T> ColorSwatch(
     selected: Boolean
 ) {
     val color = if (MaterialTheme.colors.isLight) {
-        entry.lightColor()
+        entry.lightColor(LocalContext.current)
     } else {
-        entry.darkColor()
+        entry.darkColor(LocalContext.current)
     }
 
     Box(
