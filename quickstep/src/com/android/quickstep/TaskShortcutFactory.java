@@ -42,7 +42,6 @@ import com.android.launcher3.popup.SystemShortcut;
 import com.android.launcher3.popup.SystemShortcut.AppInfo;
 import com.android.launcher3.util.InstantAppResolver;
 import com.android.launcher3.util.SplitConfigurationOptions.SplitPositionOption;
-import com.android.launcher3.util.PackageManagerHelper;
 import com.android.quickstep.views.RecentsView;
 import com.android.quickstep.views.TaskThumbnailView;
 import com.android.quickstep.views.TaskView;
@@ -88,11 +87,6 @@ public interface TaskShortcutFactory {
             return true;
         }
     };
-
-    TaskShortcutFactory UNINSTALL = (activity, view) ->
-            PackageManagerHelper.isSystemApp(activity,
-                 view.getTask().getTopComponent().getPackageName())
-                    ? null : new SystemShortcut.UnInstall(activity, view.getItemInfo());
 
     abstract class MultiWindowFactory implements TaskShortcutFactory {
 

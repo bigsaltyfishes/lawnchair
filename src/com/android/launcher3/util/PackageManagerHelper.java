@@ -183,12 +183,6 @@ public class PackageManagerHelper {
                         .authority(mContext.getPackageName()).build());
     }
 
-    public Intent getUninstallIntent(String packageName) {
-        return new Intent(Intent.ACTION_UNINSTALL_PACKAGE)
-                .setData(Uri.parse("package:" + packageName))
-                .putExtra(Intent.EXTRA_RETURN_RESULT, true);
-    }
-
     /**
      * Creates a new market search intent.
      */
@@ -268,34 +262,21 @@ public class PackageManagerHelper {
         return packageFilter;
     }
 
-    public static boolean isSystemApp(Context context, String pkgName) {
-        return isSystemApp(context, null, pkgName);
-    }
-
     public static boolean isSystemApp(Context context, Intent intent) {
-        return isSystemApp(context, intent, null);
-    }
-
-    public static boolean isSystemApp(Context context, Intent intent, String pkgName) {
         PackageManager pm = context.getPackageManager();
+        ComponentName cn = intent.getComponent();
         String packageName = null;
-        // If the intent is not null, let's get the package name from the intent.
-        if (intent != null) {
-            ComponentName cn = intent.getComponent();
-            if (cn == null) {
-                ResolveInfo info = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
-                if ((info != null) && (info.activityInfo != null)) {
-                    packageName = info.activityInfo.packageName;
-                }
-            } else {
-                packageName = cn.getPackageName();
+        if (cn == null) {
+            ResolveInfo info = pm.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+            if ((info != null) && (info.activityInfo != null)) {
+                packageName = info.activityInfo.packageName;
             }
+        } else {
+            packageName = cn.getPackageName();
         }
-        // Otherwise we have the package name passed from the method.
-        else {
-            packageName = pkgName;
+        if (packageName == null) {
+            packageName = intent.getPackage();
         }
-        // Check if the provided package is a system app.
         if (packageName != null) {
             try {
                 PackageInfo info = pm.getPackageInfo(packageName, 0);
