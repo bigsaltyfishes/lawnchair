@@ -4,11 +4,12 @@ plugins {
 }
 
 android {
-    compileSdk 31
+    compileSdk COMPILE_SDK
+    namespace "app.lawnchair.compatlib.twelve"
 
     defaultConfig {
-        minSdk 26
-        targetSdk 31
+        minSdk MIN_SDK
+        targetSdk TARGET_SDK
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -32,6 +33,6 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation 'androidx.core:core-ktx:1.8.0'
     implementation project(':CompatLib')
 }
